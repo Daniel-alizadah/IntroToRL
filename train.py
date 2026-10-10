@@ -50,9 +50,13 @@ class QNetwork(nn.Module):
         return self.fc3(values)
 
 
-def choose_pole_length(condition):
+def choose_pole_length(condition, step=0, total_steps=TOTAL_STEPS):
     if condition == "fixed":
         return FIXED_LENGTH
+    if condition == "curriculum":
+        progress = step / max(1, total_steps)
+        progress = min(progress, 1.0)
+        return MIN_LENGTH + progress * (MAX_LENGTH - MIN_LENGTH)
     return float(np.random.uniform(MIN_LENGTH, MAX_LENGTH))
 
 
@@ -154,7 +158,7 @@ def train(total_steps=TOTAL_STEPS, seed=SEED, condition=CONDITION, output_folder
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
     memory = deque(maxlen=MEMORY_SIZE)
 
-    length = choose_pole_length(condition)
+    length = choose_pole_length(condition, 0, total_steps)
     env.unwrapped.length = length
     state, _ = env.reset(seed=seed)
     print(f"Training for {total_steps} steps...")
@@ -208,7 +212,7 @@ def train(total_steps=TOTAL_STEPS, seed=SEED, condition=CONDITION, output_folder
             print(f"Step {step}: validation {score:.1f}, best {best_score:.1f}")
 
         if (terminated or truncated) and step < total_steps:
-            length = choose_pole_length(condition)
+            length = choose_pole_length(condition, step, total_steps)
             env.unwrapped.length = length
             state, _ = env.reset()
 
@@ -225,7 +229,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--condition", choices=["uniform", "fixed"], default=CONDITION)
+    parser.add_argument("--condition", choices=["uniform", "fixed", "curriculum"], default=CONDITION)
     parser.add_argument("--seed", type=int, default=SEED)
     parser.add_argument("--steps", type=int, default=TOTAL_STEPS)
     args = parser.parse_args()
