@@ -1,100 +1,102 @@
-# IntroToRL — Team 6, Assignment 3
+# IntroToRL
 
-Deep Q-learning generalist for **CartPole-v1 with varying pole lengths** (Introduction to
-Reinforcement Learning, VU Amsterdam, 2026). All agents use the prescribed network from
-`test_script.py` (4 → 128 → 128 → 2). During training **only the pole length is changed**
-(`env.unwrapped.length`). The course test (`test_script.py`) is never modified and never used
-for training or for choosing checkpoints.
+Team 6: Daniel, Zelal and Öykü. Assignment 3 for Introduction to Reinforcement Learning at VU Amsterdam.
+
+We train a DQN agent to balance CartPole across pole lengths from 0.4 to 1.8. We compare a curriculum, stratified replay and reward shaping with fixed-length and uniform-random training.
 
 ## Setup
 
+Use Python 3.10–3.12. Create a virtual environment:
+
 ```bash
-python -m venv venv && source venv/bin/activate      # Python 3.10–3.12
+python -m venv venv
+```
+
+Activate it with `source venv/bin/activate` on macOS/Linux, or `.\venv\Scripts\Activate.ps1` in Windows PowerShell. Then install the packages:
+
+```bash
 pip install -r requirements.txt
 ```
 
-## Conditions (`train.py --condition ...`)
+## Train and evaluate
 
-| Condition | Role | Pole length per episode | Training change |
-|---|---|---|---|
-| `fixed` | baseline | always 0.5 | – |
-| `uniform` | control | uniform in [0.4, 1.8] | – |
-| `curriculum` | **S1** (Daniel) | rises linearly 0.4 → 1.8 over training | – |
-| `strat_curriculum` | **S2** (Zelal) | as S1 | length-stratified replay buffer (`stratified_buffer.py`) |
-| `strat_uniform` | S2 diagnostic | as `uniform` | length-stratified replay buffer |
-| `margin` | **S3** (Öykü) | as `uniform` | stability-margin reward stored in replay: `1 − 0.5(θ/θmax)² − 0.25(x/xmax)²` |
-| `margin_pbrs` | S3 ablation | as `uniform` | potential-based version of the same penalty (Ng et al., 1999) |
-| `margin_linear` | S3 ablation | as `uniform` | linear penalties, weights 0.5 / 0.5 |
-
-Shared settings (constants at the top of `train.py`): 300k environment steps, one update per
-step after 1k warm-up steps, batch 64, Adam lr 1e-4, γ = 0.99, MSE TD loss, replay memory 20k,
-target network copied every 1k steps, ε from 1.0 to 0.05 over the first 50% of steps,
-bootstrapping through time-limit truncation (not through real failures), validation every 10k
-steps under nominal dynamics (5 lengths × 3 seeded episodes, 10k-step cap), and the best
-validation checkpoint is saved. Seeds 0–7 for every condition.
-
-## Reproduce
+Run commands from the repository folder. For example:
 
 ```bash
-# 1. train one condition/seed  -> weights/<condition>_seed<k>.pth, logs/<condition>_seed<k>*.csv
 python train.py --condition margin --seed 0
+python evaluate.py weights/margin_seed0.pth --name margin_seed0 --cap 20000
+```
 
-# 2. evaluate with the course test protocol (30 lengths x 10 episodes, episodes capped at 20000 steps)
-python evaluate.py weights/margin_seed0.pth --name margin_seed0 --cap 20000   # -> results/
+Training saves the model in `weights/` and logs in `logs/`. Evaluation saves episode scores, a summary, metrics and a bar plot in `results/`.
 
-#    or train + evaluate seeds 0-7 of one or more conditions (3 in parallel)
+The available conditions are:
+
+| Condition | Description |
+|---|---|
+| `fixed` | Baseline: pole length 0.5 |
+| `uniform` | Control: random length from 0.4 to 1.8 each episode |
+| `curriculum` | S1: length increases linearly from 0.4 to 1.8 |
+| `strat_curriculum` | S2: the same curriculum with length-stratified replay |
+| `margin` | S3: squared angle and position penalties in the training reward |
+| `strat_uniform` | Replay-buffer diagnostic with uniform lengths |
+| `margin_pbrs` | Potential-based reward-shaping ablation |
+| `margin_linear` | Reward-shaping ablation with linear penalties |
+
+We use seeds 0–7 for each condition. The Bash helpers run three jobs at a time:
+
+```bash
 bash run_cond.sh margin
+bash eval_missing.sh margin
+```
 
-# 3. choose the submitted seed per strategy from the VALIDATION logs only
-python select_checkpoint.py curriculum strat_curriculum margin
+The evaluation uses 30 pole lengths and ten episodes per length. We cap episodes at 20,000 steps for every condition. This cap is our addition to the course test. To use the original course function without a cap:
 
-# 4. statistics (Kruskal-Wallis, Mann-Whitney U with Holm correction, Cliff's delta, bootstrap CIs) and figures
-python analyze.py --conditions fixed uniform curriculum strat_curriculum margin --pairs ... --cap 20000
+```bash
+python evaluate.py submission/S3_margin_seed5.pth --name S3_official --cap 0
+```
+
+`test_script.py` is the original course file. We do not use its scores for training or checkpoint selection.
+
+## Analysis
+
+Put the score CSVs in `results/` with names such as `curriculum_seed0_scores.csv`. Once all the requested conditions are available:
+
+```bash
+python analyze.py --conditions fixed uniform curriculum strat_curriculum margin --pairs uniform:fixed curriculum:uniform strat_curriculum:curriculum margin:uniform --cap 20000
 python make_plots.py
-
-# 5. S3 mechanism checks (run from the repo root)
-python analysis/compare_conditions.py      # margin variants vs uniform re-run vs curriculum
-python analysis/stability_check.py         # seeded: cart drift, pole angle, size of the shaped reward
 ```
 
-`evaluate.py --cap 0` runs the unmodified `test_pole_length()` from `test_script.py` without a cap.
+`analyze.py` compares training seeds using Kruskal-Wallis and Mann-Whitney tests, Holm correction, Cliff's delta and bootstrap confidence intervals. `make_plots.py` also expects the second laptop's uniform results named `uniform_oyku_seed<k>_scores.csv`.
 
-## Submitted networks (`submission/`)
+The S3 checks use the margin models and the uniform control rerun:
 
-| Strategy | File | Chosen by |
-|---|---|---|
-| S1 curriculum | `S1_curriculum_seed6.pth` | `select_checkpoint.py` |
-| S2 stratified replay + curriculum | `S2_stratified_seed4.pth` | `select_checkpoint.py` |
-| S3 stability-margin reward | `S3_margin_seed5.pth` | `select_checkpoint.py` |
-
-Selection rule (fixed before looking at test scores): highest best-validation score; ties → the
-most validation rounds at the 10k cap; then the lowest seed.
-
-To run the official test script on a submitted network, set `trained_nn` in `test_script.py`
-to e.g. `"../submission/S3_margin_seed5.pth"` (it loads from `weights/`), or use
-`python evaluate.py submission/S3_margin_seed5.pth --name S3_official --cap 0`.
-
-## Repository layout
-
-```
-train.py               DQN training, all conditions (--condition)
-stratified_buffer.py   length-stratified replay buffer (S2)
-evaluate.py            course test protocol, saves per-episode scores (results/)
-select_checkpoint.py   picks the submitted seed from validation logs
-analyze.py, make_plots.py   statistics and figures for the paper
-run_cond.sh, eval_missing.sh   batch helpers (train/evaluate seeds 0-7)
-analysis/              S3 analyses (compare_conditions.py, margin_analysis.py, stability_check.py)
-test_script.py         provided by the course, unchanged
-weights/               trained networks (<condition>_seed<k>.pth); weights/uniform_rerun/ = uniform control re-run used for S3
-results/               test scores (<condition>_seed<k>_scores.csv, cap 20000); results/uniform_rerun/
-logs/                  per-episode training logs and validation logs
-submission/            the three submitted networks
+```bash
+python analysis/compare_conditions.py
+python analysis/stability_check.py
 ```
 
-## Notes
+The first command also needs the curriculum CSVs. The stability check seeds the environment resets and measures cart position, pole angle and shaped reward during the first 500 nominal steps. Its tests are exploratory and uncorrected; measurements stop if an episode fails.
 
-* Runs were spread over the three team members' laptops (same code and seeds). Results can
-  differ between machines/library versions: the uniform control gave 10.4k on one laptop and
-  12.6k on another, within seed noise. S3 is therefore compared with a uniform re-run on the same
-  machine (`results/uniform_rerun/`).
-* The 20k evaluation cap is ours, not the course's; it is the same for every condition.
+## Submitted models
+
+The three selected models are in `submission/`:
+
+- S1: `S1_curriculum_seed6.pth`
+- S2: `S2_stratified_seed4.pth`
+- S3: `S3_margin_seed5.pth`
+
+We select models from validation logs: highest best-validation score, then most validation rounds at the 10,000-step cap, then lowest seed.
+
+```bash
+python select_checkpoint.py curriculum strat_curriculum margin
+```
+
+This command needs the validation logs for each condition in `logs/`.
+
+## Shared training settings
+
+All conditions use the course network (4 → 128 → 128 → 2) and 300,000 environment steps. The settings are in `train.py`: Adam learning rate 1e-4, gamma 0.99, batch size 64, MSE loss, replay capacity 20,000, and a target-network update every 1,000 steps. Learning starts after 1,000 steps and runs every step. Epsilon decreases from 1.0 to 0.05 during the first half of training. Time-limit truncations allow bootstrapping; actual failures do not.
+
+Validation runs every 10,000 steps on five lengths, with three seeded episodes per length and a 10,000-step cap. The best validation checkpoint is saved. Only pole length changes during training; reward-shaping conditions change the reward stored in replay.
+
+Experiments ran on different laptops, so scores can vary across machines and library versions. For S3, we use a uniform control rerun on the same laptop, stored under `weights/uniform_rerun/` and `results/uniform_rerun/`.
