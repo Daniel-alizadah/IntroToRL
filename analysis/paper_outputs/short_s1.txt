@@ -1,0 +1,21 @@
+seeds per condition:
+ condition
+curriculum    8
+margin        8
+uniform       8 
+
+ condition  n_seeds      mean    median  short_mean  mid_mean  long_mean  ci95_low  ci95_high      min       max  episodes_>=500  episodes_>1000  frac_lengths_>500  frac_lengths_>1000  worst5_mean  episodes_at_cap
+curriculum        8  9574.906  8800.720    2876.771 10250.573  14859.995  8302.622  11072.805 7542.477 13412.367           0.999           0.796                1.0               0.825     1223.798            0.159
+   uniform        8 10392.309  8273.320   10099.549 10643.258  10379.750  7268.966  13890.148 5567.587 17737.863           0.998           0.915                1.0               0.992     6605.168            0.245
+    margin        8 11565.818 11488.685   10342.771 11855.860  12347.512  8648.984  14350.497 5537.980 17524.553           1.000           0.948                1.0               1.000     6997.220            0.295 
+
+Metric used for tests and figure: short_mean
+
+Kruskal-Wallis across 3 conditions: H=14.435, p=0.0007336
+
+Pre-specified pairwise comparisons (Mann-Whitney U, Holm-adjusted):
+      A          B   median_A  median_B    U  p_raw  cliffs_delta  p_holm
+uniform curriculum  8421.7889 2912.9444 63.0 0.0003        0.9688  0.0006
+ margin curriculum 10109.3389 2912.9444 63.0 0.0003        0.9688  0.0006 
+
+Wrote tables and figure to analysis/
