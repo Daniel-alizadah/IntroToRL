@@ -1,0 +1,16 @@
+seeds per condition:
+ condition
+curriculum           8
+curriculum_daniel    8 
+
+        condition  n_seeds     mean   median  short_mean  mid_mean  long_mean  ci95_low  ci95_high      min       max  episodes_>=500  episodes_>1000  frac_lengths_>500  frac_lengths_>1000  worst5_mean  episodes_at_cap
+       curriculum        8 9574.906 8800.720    2876.771 10250.573  14859.995  8302.622  11072.805 7542.477 13412.367           0.999           0.796              1.000               0.825     1223.798            0.159
+curriculum_daniel        8 9016.036 8319.982    2917.053 10832.274  12507.259  7501.815  10651.384 5936.290 12290.047           0.995           0.775              0.996               0.842     1155.598            0.094 
+
+Metric used for tests and figure: mean_score
+
+Pre-specified pairwise comparisons (Mann-Whitney U, Holm-adjusted):
+         A                 B  median_A  median_B    U  p_raw  cliffs_delta  p_holm
+curriculum curriculum_daniel   8800.72 8319.9817 40.0 0.4418          0.25  0.4418 
+
+Wrote tables and figure to analysis/

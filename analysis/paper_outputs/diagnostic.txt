@@ -1,0 +1,16 @@
+seeds per condition:
+ condition
+strat_uniform    8
+uniform          8 
+
+    condition  n_seeds      mean    median  short_mean  mid_mean  long_mean  ci95_low  ci95_high      min       max  episodes_>=500  episodes_>1000  frac_lengths_>500  frac_lengths_>1000  worst5_mean  episodes_at_cap
+      uniform        8 10392.309  8273.320   10099.549 10643.258  10379.750   7260.26  13945.979 5567.587 17737.863           0.998           0.915                1.0               0.992     6605.168            0.245
+strat_uniform        8 12436.570 15503.733   14730.021 13380.867   9333.738   8659.25  15702.003 4078.443 17574.230           0.998           0.957                1.0               1.000     6958.680            0.418 
+
+Metric used for tests and figure: mean_score
+
+Pre-specified pairwise comparisons (Mann-Whitney U, Holm-adjusted):
+            A       B   median_A  median_B    U  p_raw  cliffs_delta  p_holm
+strat_uniform uniform 15503.7333   8273.32 37.0 0.6454        0.1562  0.6454 
+
+Wrote tables and figure to analysis/

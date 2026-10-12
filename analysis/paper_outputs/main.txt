@@ -1,0 +1,29 @@
+seeds per condition:
+ condition
+curriculum          8
+fixed               8
+margin              8
+strat_curriculum    8
+uniform             8
+uniform_oyku        8 
+
+       condition  n_seeds      mean    median  short_mean  mid_mean  long_mean  ci95_low  ci95_high      min       max  episodes_>=500  episodes_>1000  frac_lengths_>500  frac_lengths_>1000  worst5_mean  episodes_at_cap
+           fixed        8  9915.362 10576.802    9894.365 12083.139   7549.705  6749.340  13106.690 3166.343 17060.640           0.779           0.678              0.904               0.846     3490.670            0.310
+         uniform        8 10392.309  8273.320   10099.549 10643.258  10379.750  7268.966  13890.148 5567.587 17737.863           0.998           0.915              1.000               0.992     6605.168            0.245
+      curriculum        8  9574.906  8800.720    2876.771 10250.573  14859.995  8296.102  11042.329 7542.477 13412.367           0.999           0.796              1.000               0.825     1223.798            0.159
+strat_curriculum        8  2972.845  2115.375    3023.979  3346.802   2515.471  1346.568   4780.918  312.237  7093.190           0.592           0.381              0.583               0.513      519.178            0.023
+          margin        8 11565.818 11488.685   10342.771 11855.860  12347.512  8663.747  14367.209 5537.980 17524.553           1.000           0.948              1.000               1.000     6997.220            0.295
+    uniform_oyku        8 12628.277 13063.185   13138.918 13597.440  11102.620  9730.559  15543.382 5870.223 19309.937           1.000           0.929              1.000               1.000     8567.412            0.422 
+
+Metric used for tests and figure: mean_score
+
+Kruskal-Wallis across 6 conditions: H=17.355, p=0.003874
+
+Pre-specified pairwise comparisons (Mann-Whitney U, Holm-adjusted):
+               A            B  median_A   median_B    U  p_raw  cliffs_delta  p_holm
+         uniform        fixed  8273.320 10576.8017 34.0 0.8785        0.0625  1.0000
+      curriculum      uniform  8800.720  8273.3200 34.0 0.8785        0.0625  1.0000
+          margin uniform_oyku 11488.685 13063.1850 29.0 0.7984       -0.0938  1.0000
+strat_curriculum   curriculum  2115.375  8800.7200  0.0 0.0002       -1.0000  0.0006 
+
+Wrote tables and figure to analysis/
