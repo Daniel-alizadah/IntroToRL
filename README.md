@@ -59,14 +59,32 @@ python evaluate.py submission/S3_margin_seed5.pth --name S3_official --cap 0
 
 ## Analysis
 
-Put the score CSVs in `results/` with names such as `curriculum_seed0_scores.csv`. Once all the requested conditions are available:
+The results and logs used for the paper are included. Run this command to reproduce the main table and comparisons:
 
 ```bash
-python analyze.py --conditions fixed uniform curriculum strat_curriculum margin --pairs uniform:fixed curriculum:uniform strat_curriculum:curriculum margin:uniform --cap 20000
+python analyze.py --conditions fixed uniform curriculum strat_curriculum margin uniform_oyku --pairs uniform:fixed curriculum:uniform margin:uniform_oyku strat_curriculum:curriculum --cap 20000 --out analysis/main
+```
+
+`analyze.py` compares training seeds using Kruskal-Wallis and Mann-Whitney tests, Holm correction, Cliff's delta and bootstrap confidence intervals. Each output folder contains per-seed metrics, a summary table, pairwise tests and a figure.
+
+The other comparisons in the paper are reproduced with:
+
+```bash
+python analyze.py --conditions fixed uniform curriculum strat_curriculum margin uniform_oyku --pairs strat_curriculum:curriculum --metric short_mean --cap 20000 --out analysis/short
+python analyze.py --conditions curriculum uniform margin --pairs uniform:curriculum margin:curriculum --metric short_mean --cap 20000 --out analysis/short_s1
+python analyze.py --conditions uniform strat_uniform --pairs strat_uniform:uniform --cap 20000 --out analysis/diagnostic
+python analyze.py --conditions curriculum curriculum_daniel --pairs curriculum:curriculum_daniel --cap 20000 --out analysis/machine_check
+```
+
+`short_mean` uses the nine shortest pole lengths (0.40–0.79). The saved analysis outputs are in `analysis/paper_outputs/`.
+
+Recreate both paper figures with:
+
+```bash
 python make_plots.py
 ```
 
-`analyze.py` compares training seeds using Kruskal-Wallis and Mann-Whitney tests, Holm correction, Cliff's delta and bootstrap confidence intervals. `make_plots.py` also expects the second laptop's uniform results named `uniform_oyku_seed<k>_scores.csv`.
+The figures are saved in `figures/`. `uniform_oyku` is Öykü's same-machine uniform control, copied from `results/uniform_rerun/`. `curriculum` is Zelal's rerun used for the main comparison; `curriculum_daniel` contains Daniel's original scores for the machine comparison. Both comparison copies contain scores only.
 
 The S3 checks use the margin models and the uniform control rerun:
 
@@ -75,7 +93,7 @@ python analysis/compare_conditions.py
 python analysis/stability_check.py
 ```
 
-The first command also needs the curriculum CSVs. The stability check seeds the environment resets and measures cart position, pole angle and shaped reward during the first 500 nominal steps. Its tests are exploratory and uncorrected; measurements stop if an episode fails.
+The stability check seeds the environment resets and measures cart position, pole angle and shaped reward during the first 500 nominal steps. Its tests are exploratory and uncorrected; measurements stop if an episode fails. This can affect comparisons when models have different failure rates.
 
 ## Submitted models
 
@@ -91,7 +109,7 @@ We select models from validation logs: highest best-validation score, then most 
 python select_checkpoint.py curriculum strat_curriculum margin
 ```
 
-This command needs the validation logs for each condition in `logs/`.
+This command reads the included validation logs and confirms the selected seeds. Use the files in `submission/` for the final models. The curriculum models in `weights/` are Daniel's older run, so they are not interchangeable with the submitted S1 rerun.
 
 ## Shared training settings
 

@@ -8,7 +8,8 @@ Rule (fixed before looking at any test result):
   3. remaining ties -> lowest seed index
 
 Usage: python select_checkpoint.py curriculum margin strat_curriculum
-Reads logs/<condition>_seed<k>_validation.csv, prints the table and the chosen weights file.
+Reads logs/<condition>_seed<k>_validation.csv and prints the table and selected seed.
+The final submitted models are listed in the README under submission/.
 """
 import argparse
 from pathlib import Path
@@ -36,4 +37,4 @@ for cond in args.conditions:
                                        ascending=[False, False, True])
     print(f"== {cond} ==")
     print(t.round(1).to_string(index=False))
-    print(f"-> submit weights/{cond}_seed{int(t.iloc[0].seed)}.pth\n")
+    print(f"-> selected {cond} seed {int(t.iloc[0].seed)}\n")
