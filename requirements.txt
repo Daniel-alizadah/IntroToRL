@@ -1,0 +1,8 @@
+# Python 3.10-3.12 (gym 0.26 does not support NumPy 2)
+numpy<2
+gym==0.26.2
+torch
+pandas
+scipy
+matplotlib
+openpyxl
