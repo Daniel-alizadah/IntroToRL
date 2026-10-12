@@ -1,0 +1,22 @@
+uniform      n=8 mean   12628 ±   4522 median   13063 P1 1.000 P2 0.929 cap 0.42 short  13139 long  11079 died-at-onset(l<=0.5) 0.00
+margin       n=8 mean   11566 ±   4435 median   11489 P1 1.000 P2 0.948 cap 0.30 short  10343 long  12274 died-at-onset(l<=0.5) 0.00
+margin_pbrs  n=8 mean   11763 ±   5032 median   12121 P1 0.991 P2 0.895 cap 0.35 short  11535 long  11283 died-at-onset(l<=0.5) 0.03
+margin_linear n=8 mean   11572 ±   2951 median   10649 P1 0.987 P2 0.934 cap 0.29 short   8723 long  13777 died-at-onset(l<=0.5) 0.04
+curriculum   n=8 mean    9016 ±   2416 median    8320 P1 0.995 P2 0.775 cap 0.09 short   2917 long  12485 died-at-onset(l<=0.5) 0.84
+seeds uniform: [17355.0, 9765.0, 5870.0, 14157.0, 14082.0, 19310.0, 12045.0, 8443.0]
+Kruskal-Wallis (overall mean): KruskalResult(statistic=np.float64(3.5359756097561075), pvalue=np.float64(0.4724292999948577))
+[mean ] margin      vs uniform   : MWU p=0.7984 Holm 1.0000 Cliff -0.09
+[mean ] margin_pbrs vs uniform   : MWU p=0.8785 Holm 1.0000 Cliff -0.06
+[mean ] margin_linear vs uniform   : MWU p=0.7209 Holm 1.0000 Cliff -0.12
+[mean ] margin      vs margin_pbrs: MWU p=0.7209 Holm 1.0000 Cliff -0.12
+[mean ] margin      vs curriculum: MWU p=0.3823 Holm 1.0000 Cliff +0.28
+[short] margin      vs uniform   : MWU p=0.2786 Holm 0.8359 Cliff -0.34
+[short] margin_pbrs vs uniform   : MWU p=0.7209 Holm 1.0000 Cliff -0.12
+[short] margin_linear vs uniform   : MWU p=0.1304 Holm 0.5215 Cliff -0.47
+[short] margin      vs margin_pbrs: MWU p=0.6454 Holm 1.0000 Cliff -0.16
+[short] margin      vs curriculum: MWU p=0.0011 Holm 0.0054 Cliff +0.91
+[P2   ] margin      vs uniform   : MWU p=0.8323 Holm 1.0000 Cliff +0.08
+[P2   ] margin_pbrs vs uniform   : MWU p=0.9161 Holm 1.0000 Cliff -0.05
+[P2   ] margin_linear vs uniform   : MWU p=0.4292 Holm 1.0000 Cliff -0.25
+[P2   ] margin      vs margin_pbrs: MWU p=0.6350 Holm 1.0000 Cliff +0.16
+[P2   ] margin      vs curriculum: MWU p=0.0027 Holm 0.0136 Cliff +0.91

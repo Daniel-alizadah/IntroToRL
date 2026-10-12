@@ -30,6 +30,14 @@ EPSILON_START = 1.0
 EPSILON_END = 0.05
 EPSILON_DECAY_FRACTION = 0.5
 
+# Stability-margin reward (condition "margin"): only the reward that is STORED in the
+# replay memory changes. Validation, logging and the course test keep using the
+# environment's own reward of +1 per step.
+MARGIN_W_ANGLE = 0.5      # weight of the pole-angle penalty
+MARGIN_W_POSITION = 0.25  # weight of the cart-position penalty
+THETA_MAX = 12 * 2 * np.pi / 360   # CartPole's failure angle (0.2095 rad)
+X_MAX = 2.4                        # CartPole's failure position
+
 VALIDATE_EVERY = 10000
 VALIDATION_LENGTHS = [0.45, 0.75, 1.05, 1.35, 1.75]
 VALIDATION_EPISODES = 3
@@ -58,6 +66,48 @@ def choose_pole_length(condition, step=0, total_steps=TOTAL_STEPS):
         progress = min(progress, 1.0)
         return MIN_LENGTH + progress * (MAX_LENGTH - MIN_LENGTH)
     return float(np.random.uniform(MIN_LENGTH, MAX_LENGTH))
+
+
+def margin_reward(next_state, env_reward, w_angle=MARGIN_W_ANGLE, w_position=MARGIN_W_POSITION):
+    """Stability-margin reward: r = 1 - w_angle*(theta/theta_max)^2 - w_position*(x/x_max)^2.
+
+    The ratios are clipped at 1, so the reward stays in [1 - w_angle - w_position, 1]
+    = [0.25, 1] with the default weights. Because every step still earns a positive
+    reward, surviving longer is always better; the shaping only adds a preference
+    for keeping the pole upright and the cart near the centre (a 'safety margin').
+    """
+    x, _, theta, _ = next_state
+    angle_ratio = min(abs(theta) / THETA_MAX, 1.0)
+    position_ratio = min(abs(x) / X_MAX, 1.0)
+    penalty = w_angle * angle_ratio ** 2 + w_position * position_ratio ** 2
+    return env_reward * (1.0 - penalty)
+
+
+def margin_linear_reward(next_state, env_reward, w_angle=0.5, w_position=0.5):
+    """Exploratory ablation ("margin_linear"): the same idea with LINEAR penalties and equal
+    weights, r = 1 - 0.5*|theta|/theta_max - 0.5*|x|/x_max (ratios clipped at 1).
+    Near the centre this penalty is about 10x stronger than the squared version, which tests
+    whether the squared margin reward was simply too weak to change behaviour."""
+    x, _, theta, _ = next_state
+    angle_ratio = min(abs(theta) / THETA_MAX, 1.0)
+    position_ratio = min(abs(x) / X_MAX, 1.0)
+    return env_reward * (1.0 - w_angle * angle_ratio - w_position * position_ratio)
+
+
+def margin_potential(state, w_angle=MARGIN_W_ANGLE, w_position=MARGIN_W_POSITION):
+    """Potential Phi(s) = -(stability penalty of s); used by the "margin_pbrs" ablation."""
+    x, _, theta, _ = state
+    angle_ratio = min(abs(theta) / THETA_MAX, 1.0)
+    position_ratio = min(abs(x) / X_MAX, 1.0)
+    return -(w_angle * angle_ratio ** 2 + w_position * position_ratio ** 2)
+
+
+def pbrs_reward(state, next_state, env_reward, terminated):
+    """Potential-based version of the same idea (Ng et al., 1999):
+    r' = r + gamma * Phi(s') - Phi(s), with Phi(terminal) = 0.
+    In theory this keeps the optimal policy unchanged and only densifies the signal."""
+    next_potential = 0.0 if terminated else margin_potential(next_state)
+    return env_reward + GAMMA * next_potential - margin_potential(state)
 
 
 def calculate_epsilon(step, total_steps):
@@ -181,8 +231,19 @@ def train(total_steps=TOTAL_STEPS, seed=SEED, condition=CONDITION, output_folder
         next_state, reward, terminated, truncated, _ = env.step(action)
         episode_return += reward
 
+        # The "margin" conditions store a shaped reward; every other condition
+        # stores the environment reward unchanged.
+        if condition == "margin":
+            stored_reward = margin_reward(next_state, reward)
+        elif condition == "margin_linear":
+            stored_reward = margin_linear_reward(next_state, reward)
+        elif condition == "margin_pbrs":
+            stored_reward = pbrs_reward(state, next_state, reward, terminated)
+        else:
+            stored_reward = reward
+
         # Store pole length for stratified replay.
-        transition = (state.copy(), action, reward,
+        transition = (state.copy(), action, stored_reward,
                       next_state.copy(), terminated, length)
         memory.append(transition)
         state = next_state
@@ -229,7 +290,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--condition", choices=["uniform", "fixed", "curriculum"], default=CONDITION)
+    parser.add_argument("--condition", choices=["uniform", "fixed", "curriculum", "margin", "margin_pbrs", "margin_linear"], default=CONDITION)
     parser.add_argument("--seed", type=int, default=SEED)
     parser.add_argument("--steps", type=int, default=TOTAL_STEPS)
     args = parser.parse_args()
