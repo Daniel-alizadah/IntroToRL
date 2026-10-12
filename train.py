@@ -8,11 +8,17 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from stratified_buffer import StratifiedReplay
+
 
 TOTAL_STEPS = 300000
 SEED = 0
 CPU_THREADS = 1
 CONDITION = "uniform"
+
+# Conditions that use the length-stratified replay buffer instead of the plain FIFO buffer.
+STRATIFIED_CONDITIONS = ("strat_curriculum", "strat_uniform")
+STRATIFIED_BINS = 8
 
 MIN_LENGTH = 0.4
 MAX_LENGTH = 1.8
@@ -61,7 +67,7 @@ class QNetwork(nn.Module):
 def choose_pole_length(condition, step=0, total_steps=TOTAL_STEPS):
     if condition == "fixed":
         return FIXED_LENGTH
-    if condition == "curriculum":
+    if condition in ("curriculum", "strat_curriculum"):
         progress = step / max(1, total_steps)
         progress = min(progress, 1.0)
         return MIN_LENGTH + progress * (MAX_LENGTH - MIN_LENGTH)
@@ -128,7 +134,10 @@ def choose_action(state, model, epsilon):
 
 
 def learn_from_memory(model, target_model, optimizer, memory):
-    batch = random.sample(list(memory), BATCH_SIZE)
+    if isinstance(memory, StratifiedReplay):
+        batch = memory.sample(BATCH_SIZE)
+    else:
+        batch = random.sample(list(memory), BATCH_SIZE)
 
     states = []
     actions = []
@@ -206,7 +215,11 @@ def train(total_steps=TOTAL_STEPS, seed=SEED, condition=CONDITION, output_folder
     target_model = QNetwork(4, 2)
     target_model.load_state_dict(model.state_dict())
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
-    memory = deque(maxlen=MEMORY_SIZE)
+    if condition in STRATIFIED_CONDITIONS:
+        # Same total capacity as the FIFO buffer (MEMORY_SIZE), split over length bins.
+        memory = StratifiedReplay(MEMORY_SIZE, MIN_LENGTH, MAX_LENGTH, STRATIFIED_BINS)
+    else:
+        memory = deque(maxlen=MEMORY_SIZE)
 
     length = choose_pole_length(condition, 0, total_steps)
     env.unwrapped.length = length
@@ -242,6 +255,7 @@ def train(total_steps=TOTAL_STEPS, seed=SEED, condition=CONDITION, output_folder
         else:
             stored_reward = reward
 
+        # Store pole length for stratified replay.
         # Store pole length for stratified replay.
         transition = (state.copy(), action, stored_reward,
                       next_state.copy(), terminated, length)
@@ -290,7 +304,8 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--condition", choices=["uniform", "fixed", "curriculum", "margin", "margin_pbrs", "margin_linear"], default=CONDITION)
+    parser.add_argument("--condition", choices=["uniform", "fixed", "curriculum", "strat_curriculum", "strat_uniform",
+                                                      "margin", "margin_pbrs", "margin_linear"], default=CONDITION)
     parser.add_argument("--seed", type=int, default=SEED)
     parser.add_argument("--steps", type=int, default=TOTAL_STEPS)
     args = parser.parse_args()
